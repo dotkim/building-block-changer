@@ -4,9 +4,9 @@ from os import walk
 
 
 def getFiles():
-  dataDir = '.\\data'         # set the dir to walk
-  for files in walk(dataDir): # loop through the files in dataDir
-    return files
+  dataDir = '.\\data\\'                     # set the dir to walk
+  for rootDir, dirs, files in walk(dataDir): # loop through the files in dataDir
+    return rootDir, files
 
 def parseXML(file):
   tree = ET.parse(file)   # parse XML data.
@@ -14,9 +14,10 @@ def parseXML(file):
   return tree, root       # return both for future use
 
 def handler():
-  files = getFiles()
+  rootDir, files = getFiles()
+  print(files)
   for file in files:
-    tree, root = parseXML(file)                       # call func and put the returned values in vars
+    tree, root = parseXML(rootDir+file)               # call func and put the returned values in vars
     for child in root.iter('group'):                  # iterate the tree root and find "group"
       child.text = str(unidecode(child.text))         # turn the string into a normalized string, explicitly cast as str so there wont be errors.
 
