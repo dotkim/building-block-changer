@@ -1,7 +1,6 @@
-import xml.etree.ElementTree as ET, os
+import xml.etree.ElementTree as ET
 from unidecode import unidecode
 from os import walk
-
 
 def getFiles():
   dataDir = '.\\data\\'                       # set the dir to walk.
@@ -13,61 +12,107 @@ def parseXML(file):
   root = tree.getroot()   # get root of the data.
   return tree, root       # return both for future use.
 
+def getTemplate():
+  file = '.\\Template.xml'
+  return parseXML(file)
+
 def handler():
   rootDir, files = getFiles()
   print(files)
   for file in files:
     print(file)
     tree, root = parseXML(rootDir+file)
-    for citrix in root.iter('citrix'):                # get the citrix element
-      if citrix.find('instantpassthru') is None:      
-        ET.SubElement(citrix, 'instantpassthru')
-        citrix.find('instantpassthru').text = 'yes'
-      else:
-        citrix.find('instantpassthru').text = 'yes'
-      if citrix.find('ipt_http') is None:
-        ET.SubElement(citrix, 'ipt_http')
-        citrix.find('ipt_http').text = 'no'
-      if citrix.find('ipt_auth') is None:
-        ET.SubElement(citrix, 'ipt_auth')
-        citrix.find('ipt_auth').text = 'citrix'
-      if citrix.find('ipt_customica') is None:
-        ET.SubElement(citrix, 'ipt_customica')
-        citrix.find('ipt_customica').text = 'no'
-      if citrix.find('ipt_type') is None:
-        ET.SubElement(citrix, 'ipt_type')
-        citrix.find('ipt_type').text = 'PNA'
-      if citrix.find('ipt_appset') is None:
-        ET.SubElement(citrix, 'ipt_appset')
-      if citrix.find('ipt_farmname') is None:
-        ET.SubElement(citrix, 'ipt_farmname')
-      if citrix.find('checklocalapp') is None:
-        ET.SubElement(citrix, 'checklocalapp')
-        citrix.find('checklocalapp').text = 'no'
-      if citrix.find('passthroughanyway') is None:
-        ET.SubElement(citrix, 'passthroughanyway')
-        citrix.find('passthroughanyway').text = 'no'
-      if citrix.find('passthroughinzones') is None:
-        ET.SubElement(citrix, 'passthroughinzones')
-        citrix.find('passthroughinzones').text = 'yes'
-      if citrix.find('passthrough_zones') is None:
-        ET.SubElement(citrix, 'passthrough_zones')
+    tempTree, tempRoot = getTemplate()
+    
+    for app in root.findall('./buildingblock/application'):
+      config = app.find('configuration')
+      citrix = app.find('citrix')
+      wControl = app.find('workspacecontrol')
+      zone = '{E225DEE3-520D-4BBF-A6C6-1D7E2AFBB3A2}'
+      isZone = False
 
-    for workspacecontrol in root.iter('workspacecontrol'):
-      workspacecontrol.clear()
-      workspaces = ['{E225DEE3-520D-4BBF-A6C6-1D7E2AFBB3A2}', '{6A932A4B-0B01-4B44-9D1C-86FE943AB7B5}', '{24EC5C01-9F77-4AF4-BF34-3BC9C60E28CC}']
-      for wspace in workspaces:
-        new = ET.SubElement(workspacecontrol, 'workspace')
-        new.text = wspace
+      header = 'Application: ' + config[1].text
+      print('Application: ' + config[1].text)
+      print('-' * len(header))
 
-    for child in root.iter('buildingblock'):
-      if child.find('workspaces') is None:
-        break
-      else:
-        subEle = child.find('workspaces')
-        child.remove(subEle)
+      ######## APPLICATION CONTROL ########
+      # We need to check a few things before we can work on the application.
+      # - Check if the application is enabled.
+      # - Check if the application has the correct workspace, and only that workspace.
+      enabled = citrix.find('enabled')  # find the setting "enabled" under citrix in the app.
+      if enabled.text == 'no':          # check if the app is not enabled, if so jump to the next app.
+        print('app is disabled\n')
+        continue
 
-    tree.write('./output/' + file, encoding="UTF-8", method="xml")  # write the changed tree to a new file.
+      if wControl is None:
+        print('app has no workspaces\n')
+        continue
+
+      workspace = wControl.findall('workspace')
+      print(workspace)
+      if len(workspace) == 0:
+        continue
+      if len(workspace) > 1:
+        print('Too many workspaces\n')
+        continue
+      for ws in workspace:
+        print('checking: ' + ws.text)
+        if ws.text != zone:  # check if the workspace is the one we want.
+          print('app is in the wrong workspace\n')
+        else:
+          isZone = True
+      if isZone == False:
+        continue
+
+      ######## CONFIGURATION ########
+      # Here the script is going to configure the application we are in.
+      # By checking if the values in a template is the same as the values in the main file.
+      print('__ready to configure__')
+      template = tempRoot.find('./buildingblock/application')
+      tempCon = template.find('configuration')
+      tempCtx = template.find('citrix')
+      tempCtrl = template.find('workspacecontrol')
+
+      if tempCon is not None:
+        print('* checking: ' + tempCon.tag)
+        for elem in tempCon.iter():
+          if elem.tag != 'configuration':
+            if config.find(elem.tag) is None:
+              print('creating subelement: ' + str(elem.tag))
+              new = ET.SubElement(config, elem.tag)
+              if elem.text:
+                new.text = elem.text
+            else:
+              print('configuring subelement: ' + str(elem.tag))
+              config.find(elem.tag).text = elem.text
+
+      if tempCtx is not None:
+        print('* checking: ' + tempCtx.tag)
+        for elem in tempCtx.iter():
+          if elem.tag != 'citrix':
+            if citrix.find(elem.tag) is None:
+              print('creating subelement: ' + str(elem.tag))
+              new = ET.SubElement(citrix, elem.tag)
+              if elem.text:
+                new.text = elem.text
+            else:
+              print('configuring subelement: ' + str(elem.tag))
+              citrix.find(elem.tag).text = elem.text
+      
+      if tempCtrl is not None:
+        print('* reconfiguring: ' + tempCtrl.tag)
+        wControl.clear()
+        for elem in tempCtrl.findall('workspace'):
+          print('creating subelement: ' + elem.text)
+          new = ET.SubElement(wControl, elem.tag)
+          if elem.text:
+            new.text = elem.text
+      print('__Application is configured__')
+      print('-' * len('__Application is configured__' + '\n'))
+
+    print('creating file: ' + str(file))
+    tree.write('./output/' + file, encoding="UTF-8", method="xml")
+    print('file created, check output folder')
 
 if __name__ == '__main__':
   handler()
