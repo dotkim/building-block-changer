@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 from unidecode import unidecode
 from os import walk
 import re
+import copy
 
 def getFiles():
   dataDir = '.\\data\\'                       # set the dir to walk.
@@ -67,7 +68,6 @@ def handler():
         continue
 
       workspace = wControl.findall('workspace')
-      print('workspaces:', workspace)
       if len(workspace) == 0:
         continue
 
@@ -89,16 +89,18 @@ def handler():
       tempCtx = template.find('citrix')
       tempCtrl = template.find('workspacecontrol')
 
-      print('creating application...')
-      newApp = ET.SubElement(root.find('./buildingblock'), 'application')
-      for element in app.iter():
-        if element.tag == 'application':
-          continue
-        else:
-          print('copying element... tag:', str(element.tag), end='')
-          newElem = ET.SubElement(newApp, element.tag)
-          newElem.text = element.text
-          print('OK - text:', newElem.text)
+      print('copying application...')
+      newApp = copy.deepcopy(app)
+      root.find('./buildingblock').append(newApp)
+      print('changing app name')
+      newConfig = newApp.find('configuration')
+      newName = re.search('(.*)_$', newConfig[1].text)
+      newConfig[1].text = newName.group(1) + '-'
+      print('name is changed')
+      print('removing appid and guid')
+      newApp.remove(newApp.find('appid'))
+      newApp.remove(newApp.find('guid'))
+      print('removed appid and guid')
 
       if tempCon is not None:
         print('* checking:', str(tempCon.tag))
@@ -106,9 +108,9 @@ def handler():
           if elem.tag != 'configuration':
             if config.find(elem.tag) is None:
               print('creating subelement:', str(elem.tag))
-              new = ET.SubElement(config, elem.tag)
+              newElem = ET.SubElement(config, elem.tag)
               if elem.text:
-                new.text = elem.text
+                newElem.text = elem.text
             else:
               print('configuring subelement:', str(elem.tag))
               config.find(elem.tag).text = elem.text
@@ -119,9 +121,9 @@ def handler():
           if elem.tag != 'citrix':
             if citrix.find(elem.tag) is None:
               print('creating subelement:', str(elem.tag))
-              new = ET.SubElement(citrix, elem.tag)
+              newElem = ET.SubElement(citrix, elem.tag)
               if elem.text:
-                new.text = elem.text
+                newElem.text = elem.text
             else:
               print('configuring subelement:', str(elem.tag))
               citrix.find(elem.tag).text = elem.text
@@ -131,9 +133,9 @@ def handler():
         wControl.clear()
         for elem in tempCtrl.findall('workspace'):
           print('creating subelement:', str(elem.tag), elem.text)
-          new = ET.SubElement(wControl, elem.tag)
+          newElem = ET.SubElement(wControl, elem.tag)
           if elem.text:
-            new.text = elem.text
+            newElem.text = elem.text
       print('__Application is configured__')
       print('-' * len('__Application is configured__'), end='\n\n')
 

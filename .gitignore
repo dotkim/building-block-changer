@@ -1,3 +1,4 @@
 
 *.xml
 log.txt
+__pycache__/xml.cpython-37.pyc
