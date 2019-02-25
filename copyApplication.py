@@ -30,15 +30,6 @@ def handler():
     print(file)
     tree, root = parseXML(rootDir+file)
     tempTree, tempRoot = getTemplate()
-    
-    appList = []
-    for app in root.findall('./buildingblock/application'):
-      config = app.find('configuration')
-      name = re.search('(-$)', config[1].text)
-      if name is not None:
-        appList.append(config[1].text)
-        continue
-
 
     for app in root.findall('./buildingblock/application'):
       config = app.find('configuration')
@@ -46,6 +37,10 @@ def handler():
       wControl = app.find('workspacecontrol')
       zone = '{33F35656-6637-49F9-AD5F-C76511552A77}' # intern-o365
       isZone = False
+
+      if app[1].text == '{E72C877D-6A29-4807-B81C-BE404DD2FBB7}' or app[1].text == '{5F9939BD-727A-4C2C-BA6C-163A678A2377}':
+        print('root app, stopping')
+        continue
 
       header = 'Application: ' + config[1].text
       print('Application: ' + config[1].text)
@@ -88,6 +83,7 @@ def handler():
       tempCon = template.find('configuration')
       tempCtx = template.find('citrix')
       tempCtrl = template.find('workspacecontrol')
+      tempSrvGroups = template.find('citrix/servergroups')
 
       print('copying application...')
       newApp = copy.deepcopy(app)
@@ -102,45 +98,59 @@ def handler():
       newApp.remove(newApp.find('guid'))
       print('removed appid and guid')
 
+      newCon = newApp.find('configuration')
+      newCtx = newApp.find('citrix')
+      newCtrl = newApp.find('workspacecontrol')
+      newSrvGroup = newApp.find('citrix/servergroups')
+
       if tempCon is not None:
         print('* checking:', str(tempCon.tag))
         for elem in tempCon.iter():
           if elem.tag != 'configuration':
-            if config.find(elem.tag) is None:
+            if newCon.find(elem.tag) is None:
               print('creating subelement:', str(elem.tag))
-              newElem = ET.SubElement(config, elem.tag)
+              newElem = ET.SubElement(newCon, elem.tag)
               if elem.text:
                 newElem.text = elem.text
             else:
               print('configuring subelement:', str(elem.tag))
-              config.find(elem.tag).text = elem.text
+              newCon.find(elem.tag).text = elem.text
 
-      if tempCtx is not None:
-        print('* checking:', str(tempCtx.tag))
-        for elem in tempCtx.iter():
-          if elem.tag != 'citrix':
-            if citrix.find(elem.tag) is None:
-              print('creating subelement:', str(elem.tag))
-              newElem = ET.SubElement(citrix, elem.tag)
-              if elem.text:
-                newElem.text = elem.text
-            else:
-              print('configuring subelement:', str(elem.tag))
-              citrix.find(elem.tag).text = elem.text
+#      if tempCtx is not None:
+#        print('* checking:', str(tempCtx.tag))
+#        for elem in tempCtx.iter():
+#          if elem.tag != 'citrix' or elem.tag != 'servergroups':
+#            if newCtx.find(elem.tag) is None:
+#              print('creating subelement:', str(elem.tag))
+#              newElem = ET.SubElement(newCtx, elem.tag)
+#              if elem.text:
+#                newElem.text = elem.text
+#            else:
+#              print('configuring subelement:', str(elem.tag))
+#              newCtx.find(elem.tag).text = elem.text
+
+      if tempSrvGroups is not None:
+        print('* reconfiguring:', tempSrvGroups.tag)
+        newSrvGroup.clear()
+        for elem in tempSrvGroups.findall('servergroup'):
+          print('creating subelement:', str(elem.tag), elem.text)
+          newElem = ET.SubElement(newSrvGroup, elem.tag, attrib=elem.attrib)
+          if elem.text:
+            newElem.text = elem.text
       
       if tempCtrl is not None:
         print('* reconfiguring:', tempCtrl.tag)
-        wControl.clear()
+        newCtrl.clear()
         for elem in tempCtrl.findall('workspace'):
           print('creating subelement:', str(elem.tag), elem.text)
-          newElem = ET.SubElement(wControl, elem.tag)
+          newElem = ET.SubElement(newCtrl, elem.tag)
           if elem.text:
             newElem.text = elem.text
       print('__Application is configured__')
       print('-' * len('__Application is configured__'), end='\n\n')
 
     print('creating file:', str(file))
-    tree.write('./output/' + file, encoding="UTF-8", method="xml")
+    tree.write('./output/configured_' + file, encoding="UTF-8", method="xml")
     print('file created, check output folder')
 
 if __name__ == '__main__':

@@ -13,7 +13,7 @@ def parseXML(file):
   return tree, root       # return both for future use.
 
 def getTemplate():
-  file = '.\\template\\Template.xml'
+  file = '.\\conf\\Template.xml'
   return parseXML(file)
 
 def handler():
@@ -30,6 +30,11 @@ def handler():
       wControl = app.find('workspacecontrol')
       zone = '{E225DEE3-520D-4BBF-A6C6-1D7E2AFBB3A2}'
       isZone = False
+
+      if app[1].text == '{E72C877D-6A29-4807-B81C-BE404DD2FBB7}' or app[1].text == '{5F9939BD-727A-4C2C-BA6C-163A678A2377}':
+        print('root app, stopping')
+        continue
+
 
       header = 'Application: ' + config[1].text
       print('Application: ' + config[1].text)
@@ -111,7 +116,7 @@ def handler():
       print('-' * len('__Application is configured__'), end='\n\n')
 
     print('creating file:', str(file))
-    tree.write('./output/' + file, encoding="UTF-8", method="xml")
+    tree.write('./output/configured_' + file, encoding="UTF-8", method="xml")
     print('file created, check output folder')
 
 if __name__ == '__main__':
