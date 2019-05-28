@@ -43,14 +43,17 @@ def handler():
             continue
           if attr is None:
             grp = "none"
-            obj[grp] = {
-              "ivanti": {
-                config[1].text: {
-                  "folder": config[0].text,
-                  "enabled": citrix.find('enabled').text,
-                  "cmd": "",
-                  "appv": False
-                }
+            if not grp in obj:
+              obj[grp] = {
+                "ivanti": []
+              }
+            
+            newApp = {
+              config[1].text: {
+                "folder": config[0].text,
+                "enabled": citrix.find('enabled').text,
+                "cmd": "",
+                "appv": False
               }
             }
 
@@ -59,24 +62,29 @@ def handler():
               regex = re.search('App-V', appv)
               print(regex)
             if not cmd:
-              obj[grp]["ivanti"][config[1].text]["cmd"] = ""
+              newApp[config[1].text]["cmd"] = ""
             else:
-              obj[grp]["ivanti"][config[1].text]["cmd"] = cmd
+              newApp[config[1].text]["cmd"] = cmd
             if regex:
-              obj[grp]["ivanti"][config[1].text]["appv"] = True
+              newApp[config[1].text]["appv"] = True
             else:
-              obj[grp]["ivanti"][config[1].text]["appv"] = False
+              newApp[config[1].text]["appv"] = False
+            obj[grp]["ivanti"].append(newApp)
             continue
+
           if attr == "group":
             grp = group.text.split('\\').pop()
-            obj[grp] = {
-              "ivanti": {
-                config[1].text: {
-                  "folder": config[0].text,
-                  "enabled": citrix.find('enabled').text,
-                  "cmd": "",
-                  "appv": False
-                }
+            if not grp in obj:
+              obj[grp] = {
+                "ivanti": []
+              }
+            
+            newApp = {
+              config[1].text: {
+                "folder": config[0].text,
+                "enabled": citrix.find('enabled').text,
+                "cmd": "",
+                "appv": False
               }
             }
 
@@ -85,14 +93,23 @@ def handler():
               regex = re.search('App-V', appv)
               print(regex)
             if not cmd:
-              obj[grp]["ivanti"][config[1].text]["cmd"] = ""
+              newApp[config[1].text]["cmd"] = ""
             else:
-              obj[grp]["ivanti"][config[1].text]["cmd"] = cmd
+              newApp[config[1].text]["cmd"] = cmd
             if regex:
-              obj[grp]["ivanti"][config[1].text]["appv"] = True
+              newApp[config[1].text]["appv"] = True
             else:
-              obj[grp]["ivanti"][config[1].text]["appv"] = False
-    aList.write(json.dumps(obj, ensure_ascii=False))
+              newApp[config[1].text]["appv"] = False
+            obj[grp]["ivanti"].append(newApp)
+
+    objArr = []
+    for key in obj:
+      finalObj = {
+        key: obj[key]
+      }
+      objArr.append(finalObj)
+
+    aList.write(json.dumps(objArr, ensure_ascii=False))
     aList.close()
 
 if __name__ == '__main__':
