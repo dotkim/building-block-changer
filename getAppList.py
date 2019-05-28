@@ -18,7 +18,7 @@ def openFile(fileName):
 
 def handler():
   aList = openFile('appList.csv')
-  aList.write('folder;application;enabled;cmd;appv\n')
+  aList.write('folder;application;enabled;cmd;appv;group\n')
 
   rootDir, files = getFiles()
   print(files)
@@ -29,7 +29,23 @@ def handler():
     for app in root.findall('./buildingblock/application'):
       config = app.find('configuration')
       citrix = app.find('citrix')
+      access = app.find('accesscontrol')
       cmd = config[3].text
+
+      groupArr = []
+      if access.find("grouplist") is None:
+        continue
+      else:
+        for group in access.find("grouplist"):
+          try:
+            attr = group.attrib["type"]
+          except:
+            continue
+          if attr is None:
+            continue
+          if attr == "group":
+            groupArr.append(group.text)
+      groupStr = ', '.join(groupArr)
 
       print(cmd)
       if cmd:
@@ -53,6 +69,8 @@ def handler():
         aList.write('yes')
       else:
         aList.write('no')
+      aList.write(";")
+      aList.write(groupStr)
       aList.write("\n")
   aList.close()
 
