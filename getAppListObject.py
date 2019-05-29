@@ -59,13 +59,14 @@ def handler():
 
             if cmd:
               appv = cmd
-              regex = re.search('App-V', appv)
+              regex = re.search('App-V', appv, flags = re.I)
+              regex2 = re.search('appv', appv, flags = re.I)
               print(regex)
             if not cmd:
               newApp[config[1].text]["cmd"] = ""
             else:
               newApp[config[1].text]["cmd"] = cmd
-            if regex:
+            if regex or regex2:
               newApp[config[1].text]["appv"] = True
             else:
               newApp[config[1].text]["appv"] = False
