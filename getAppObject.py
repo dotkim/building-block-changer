@@ -31,7 +31,9 @@ def handler():
       citrix = app.find('citrix')
       access = app.find('accesscontrol')
       cmd = config[3].text
+      parameters = config[5].text
       groups = []
+      users = []
 
       print('Application: ' + config[1].text)
       if access.find("grouplist") is None:
@@ -48,6 +50,9 @@ def handler():
           if attr == "group":
             grp = group.text.split('\\').pop()
             groups.append(grp)
+          if attr == "user":
+            usr = group.text.split('\\').pop()
+            users.append(usr)
 
       obj = {
         "name": config[1].text,
@@ -56,20 +61,23 @@ def handler():
           "folder": config[0].text,
           "enabled": citrix.find('enabled').text,
           "cmd": "",
+          "parameters": "",
           "appv": False,
-          "groups": groups
+          "groups": groups,
+          "users": users
         }
       }
       
       if cmd:
         appv = cmd
-        regex = re.search('App-V', appv)
+        regex = re.search('app-v', appv, flags= re.I)
+        regex2 = re.search('appv', appv, flags= re.I)
         print(regex)
-      if not cmd:
-        obj["data"]["cmd"] = ""
-      else:
+      if cmd:
         obj["data"]["cmd"] = cmd
-      if regex:
+      if parameters:
+        obj["data"]["parameters"] = parameters
+      if regex or regex2:
         obj["data"]["appv"] = True
       objArr.append(obj)
 
