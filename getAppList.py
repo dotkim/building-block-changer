@@ -8,17 +8,18 @@ def getFiles():
     return rootDir, files
 
 def parseXML(file):
-  tree = ET.parse(file)   # parse XML data.
+  enc = ET.XMLParser(encoding='utf-8')  # create a new parser to set encoding
+  tree = ET.parse(file, parser=enc)     # parse XML data using the encoder
   root = tree.getroot()   # get root of the data.
   return tree, root       # return both for future use.
 
 def openFile(fileName):
-  file = open(fileName, 'w+')
+  file = open(fileName, 'w+', encoding="UTF-8")
   return file
 
 def handler():
   aList = openFile('appList.csv')
-  aList.write('folder;application;enabled;cmd;appv;group\n')
+  aList.write('folder;application;enabled;cmd;parameters;appv;group\n')
 
   rootDir, files = getFiles()
   print(files)
@@ -31,6 +32,7 @@ def handler():
       citrix = app.find('citrix')
       access = app.find('accesscontrol')
       cmd = config[3].text
+      parameters = config[5].text
 
       groupArr = []
       if access.find("grouplist") is None:
@@ -64,6 +66,11 @@ def handler():
         aList.write('None')
       else:
         aList.write(cmd)
+      aList.write(";")
+      if not parameters:
+        aList.write('None')
+      else:
+        aList.write(parameters)
       aList.write(";")
       if regex:
         aList.write('yes')
